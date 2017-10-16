@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+{% load staticfiles %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'bookReviewsApp/css/style.css' %}">
+    <title>User Dashboard</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light navbar-right">
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="nav navbar-nav navbar-right">
+                <li>
+                    <a href="{% url 'wishList:logout' %}">{{log}}</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="container">
+        <h2>Welcome, {{user_name}}!</h2>
+        <div class="row">
+            <div class="col-md-12">
+                <h4>Your Wish List</h4>
+                
+               <div>
+                   <a href="{% url 'wishList:createWishList' %}">Add Item</a>
+               </div>
+            </div>
+        </div>
+    </div>
+</body>  
+</html>  

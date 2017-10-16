@@ -1,0 +1,15 @@
+#container {
+    padding: 15px;
+}
+
+form label {
+    width: 200px;
+}
+
+form input {
+    width: 300px;
+}
+
+.messages {
+    color: red;
+}
