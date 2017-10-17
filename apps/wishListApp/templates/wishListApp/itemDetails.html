@@ -1,0 +1,6 @@
+<h1>{{item}}</h1>
+
+<h2>Users who added this product under their wish list</h2>
+{% for wish in wishLists %}
+    {{wish.owner.name}}
+{% endfor %}

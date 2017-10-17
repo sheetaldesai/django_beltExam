@@ -24,7 +24,45 @@
         <div class="row">
             <div class="col-md-12">
                 <h4>Your Wish List</h4>
-                
+                <table>
+                    <tr>
+                        <th>Item</th>
+                        <th>Created by</th>
+                        <th>Date Added</th>
+                        <th>Action</th>
+                    </tr>
+                    {% for wish in wishList %}
+                        
+                        <tr>
+                            <td><a href="{% url 'wishList:itemDetails' wish.item.id %}">{{wish.item.name}}</a></td>
+                            <td>{{wish.item.creator.name}}</td>
+                            <td>{{wish.item.date_created}}</td>
+                            {% if user_name == wish.item.creator.name %}
+                                <td><a href="{% url 'wishList:removeItem' wish.item.id %}">Delete</a></td>
+                            {% else %}
+                                <td><a href="{% url 'wishList:removeFromList' wish.item.id %}">Remove from my wishlist</a></td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </table>
+                <h4>Other users Wish List</h4>
+                <table>
+                        <tr>
+                            <th>Item</th>
+                            <th>Created by</th>
+                            <th>Date Added</th>
+                            <th>Action</th>
+                        </tr>
+                        {% for other in others %}
+                            <tr>
+                                <td><a href="{% url 'wishList:itemDetails' other.id %}">{{other.name}}</a></td>
+                                <td>{{other.creator.name}}</td>
+                                <td>{{other.date_created}}</td>
+                                <td><a href="{% url 'wishList:addToWishList' other.id %}">Add to my wishlist</a></td>
+                                
+                            </tr>
+                        {% endfor %}
+                    </table>
                <div>
                    <a href="{% url 'wishList:createWishList' %}">Add Item</a>
                </div>

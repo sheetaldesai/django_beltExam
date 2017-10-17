@@ -70,8 +70,6 @@
                         {% for message in messages %}
                             {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR and 'login' in message.tags %}
                                 <li{% if message.tags %} class="{{ message.tags}} messages alert alert-danger" {% endif %}>{{ message }}</li>
-                            {% elif 'register_successful' in message.tags %}
-                                <li class="alert alert-success">{{message}}</li>
                             {% endif %}
                         {% endfor %}
                     </ul>

@@ -90,8 +90,8 @@ def login (request):
                 messages.add_message(request, messages.ERROR, 'Incorrect User Id or Password. Please try again')
                 return redirect(reverse('wishList:home'))
         except Users.DoesNotExist:
-            print "email not found"
-            messages.add_message(request, messages.ERROR, 'Incorrect User Id or Password. Please try again')
+            print "user not found"
+            messages.add_message(request, messages.ERROR, 'Incorrect User Id or Password. Please try again', extra_tags='login')
             return redirect(reverse('wishList:home'))
 
 def logout (request) :
@@ -99,17 +99,34 @@ def logout (request) :
     return redirect(reverse('wishList:home'))
 
 def dashboard(request) :
-    user_name = Users.objects.get(pk=int(request.session['logged_in_user'])).name
+    user = Users.objects.get(pk=int(request.session['logged_in_user']))
+    user_name = user.name
     print "user name: ", user_name
     log = 'Logout'
-    wishList = WishList.objects.all()
+    wishList = WishList.objects.filter(owner=user)
+    print len(wishList)
+    items = Items.objects.all()
+    print items
+    others = []
+    if (len(wishList) == 0) :
+        others = items
+        print "others = items"
+    else :
+        for item in items :
+            print item
+            for wishItem in wishList:
+                print wishItem.item
+                if item != wishItem.item: 
+                    others.append(item)
+    
+    print others
     # books = Books.objects.all()
     # print "Books: ", books
     context = {
         'user_name': user_name,
         'log':log,
         'wishList':wishList,
-        # 'books':books
+        'others':others
     }
     return render(request, 'wishListApp/dashboard.html', context)
 
@@ -122,6 +139,36 @@ def addWishList(request) :
     if request.method == "POST":
         print request.POST
         user = Users.objects.get(pk=int(request.session['logged_in_user']))
-        item = Items.objects.create(nane=request.POST['name'],creator=user, date_created = timezone.now())
-    HttpResponse("added")
+        item = Items.objects.create(name=request.POST['name'],creator=user, date_created = timezone.now())
+        WishList.objects.create(item=item, owner=user)
+    
+    return redirect(reverse('wishList:dashboard'))
+
+def removeItem(request, itemId) :
+    print "in remove, id ",itemId
+    item = Items.objects.get(pk=itemId)
+    print item
+    item.delete()
+    return redirect(reverse('wishList:dashboard'))
+
+def addToWishList(request, itemId) :
+    print itemId
+    user = Users.objects.get(pk=int(request.session['logged_in_user']))
+    wishList = WishList.objects.get(owner=user)
+    item = Items.objects.get(pk=itemId)
+    WishList.objects.create(item=item, owner=user)
+    return redirect(reverse('wishList:dashboard'))
+
+def removeFromList(request, itemId) :
+    item = Items.objects.get(pk=itemId)
+    user = Users.objects.get(pk=int(request.session['logged_in_user']))
+    wishList = WishList.objects.get(item=item, owner=user)
+    wishList.delete()
+    return redirect(reverse('wishList:dashboard'))
+
+def itemDetails(request, itemId) :
+    item = Items.objects.get(pk=itemId)
+    wishLists = WishList.objects.filter(item=item)
+
+    return render(request, 'wishListApp/itemDetails.html', {'wishLists':wishLists, 'item': item.name})
 
