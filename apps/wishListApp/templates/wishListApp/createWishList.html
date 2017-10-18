@@ -24,13 +24,18 @@
     </nav>
     <div id="container">
         <h2>Create a New Wish List Item</h2>
-        <form action="{% url 'wishList:addWishList' %}" method="post" class="form-horizontal">
+        <form action="{% url 'wishList:addNewItem' %}" method="post" class="form-horizontal">
             {% csrf_token %}
             <div>
                 <label for="name">Item/Product</label>
-                <input type="text" name="name" required>            
+                <input type="text" name="name">            
             </div>
-            <input type="submit" name="add" value="add">
+            {% for message in messages %}
+                {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR and 'createwish' in message.tags %}
+                    <li{% if message.tags %} class="{{ message.tags}} messages alert alert-danger" {% endif %}>{{ message }}</li>
+                {% endif %}
+            {% endfor %}
+            <input type="submit" name="add" value="Add" class="btn btn-primary">
         </form>
     </div>
 </body>

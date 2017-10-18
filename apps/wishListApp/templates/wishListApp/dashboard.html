@@ -1,12 +1,13 @@
 <!DOCTYPE html>
-{% load staticfiles %}
+{% load static %}
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
-    <link rel="stylesheet" href="{% static 'bookReviewsApp/css/style.css' %}">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{% static 'wishListApp/css/style.css' %}">
     <title>User Dashboard</title>
 </head>
 <body>
@@ -20,11 +21,11 @@
         </div>
     </nav>
     <div id="container">
-        <h2>Welcome, {{user_name}}!</h2>
+        <h2>Welcome, <span class="colorRed">{{user_name}}</span>!</h2>
         <div class="row">
             <div class="col-md-12">
                 <h4>Your Wish List</h4>
-                <table>
+                <table class="table-bordered">
                     <tr>
                         <th>Item</th>
                         <th>Created by</th>
@@ -34,19 +35,19 @@
                     {% for wish in wishList %}
                         
                         <tr>
-                            <td><a href="{% url 'wishList:itemDetails' wish.item.id %}">{{wish.item.name}}</a></td>
-                            <td>{{wish.item.creator.name}}</td>
-                            <td>{{wish.item.date_created}}</td>
-                            {% if user_name == wish.item.creator.name %}
-                                <td><a href="{% url 'wishList:removeItem' wish.item.id %}">Delete</a></td>
+                            <td><a href="{% url 'wishList:itemDetails' wish.id %}">{{wish.name}}</a></td>
+                            <td>{{wish.creator.name}}</td>
+                            <td>{{wish.date_created}}</td>
+                            {% if user_name == wish.creator.name %}
+                                <td><a href="{% url 'wishList:deleteItem' wish.id %}">Delete</a></td>
                             {% else %}
-                                <td><a href="{% url 'wishList:removeFromList' wish.item.id %}">Remove from my wishlist</a></td>
+                                <td><a href="{% url 'wishList:removeFromWishList' wish.id %}">Remove from my wishlist</a></td>
                             {% endif %}
                         </tr>
                     {% endfor %}
                 </table>
                 <h4>Other users Wish List</h4>
-                <table>
+                <table class="table-bordered">
                         <tr>
                             <th>Item</th>
                             <th>Created by</th>
@@ -64,7 +65,7 @@
                         {% endfor %}
                     </table>
                <div>
-                   <a href="{% url 'wishList:createWishList' %}">Add Item</a>
+                   <a href="{% url 'wishList:createWishList' %}" class="btn btn-info" role="button">Add Item</a>
                </div>
             </div>
         </div>

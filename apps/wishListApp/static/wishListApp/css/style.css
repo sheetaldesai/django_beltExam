@@ -10,6 +10,25 @@ form input {
     width: 300px;
 }
 
+form input[type="submit"] {
+    width: 150px;
+}
+
+nav ul {
+    margin-left: auto;
+}
+
+table {
+    margin: 20px;
+}
 .messages {
+    color: red;
+}
+
+td,th {
+    padding: 10px;
+}
+
+.colorRed {
     color: red;
 }

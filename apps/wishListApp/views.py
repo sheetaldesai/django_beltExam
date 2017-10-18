@@ -12,17 +12,16 @@ from django.utils import timezone
 from django.contrib import messages
 
 # Create your views here.
-def index (request) :
-    # context = {'users': Users.objects.all()}
-    # print context
-    # request.session.flush()
+def index (request) :  
     context = {}
+    # If we are redirected here from registration/login due to validation errors then pre-populate
+    # the name and username fields with the values user entered. 
     storage = messages.get_messages(request)
     for message in storage :
         print "message: ", message.message
         if 'name' in message.tags :
             context['name'] = message.message
-        elif 'alias' in message.tags :
+        if 'username' in message.tags :
             context['username'] = message.message
 
     print "Index context: ", context
@@ -32,66 +31,32 @@ def register(request) :
     error = False
     context = {}
     print "in register"
-    # print "request.post: ", request.POST 
+
     if request.method == "POST":
-        password = request.POST['password']
-        c_password = request.POST['confirm_password']
-        print "Post: ", request.POST
-        # if re.match(r'[A-Za-z0-9@#$%^&+=]{8,}', password)):
-        #     request.Flash['invalid_password'] = "The password must be at least 8 characters long"
-        #     print "password invalid"
-        #     return redirect(reverse("bookReviews:home"))
-    
-        if len(password) < 8:
-            messages.add_message(request, messages.ERROR, 'Passwords do not match.')
-            print "password less than 8"
-            error = True
-        if password != c_password :
-            messages.add_message(request, messages.ERROR, 'Password has to be mininum 8 characters long')
-            print "password mismatch"
-            error = True
-        try: 
-            user = Users.objects.get(name = request.POST['name'])
-            print "user: ", user
-            messages.add_message(request, messages.ERROR, 'User with this name already exists. Please log in', extra_tags="register")
-            print "user exists"
-            error = True
-        except Users.DoesNotExist:
-            if not error:
-                # encrypt the password
-                hash1 = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-                Users.objects.create(name=request.POST['name'], username=request.POST['username'], password = hash1, data_hired=request.POST['hire_date'])
-                messages.add_message(request, messages.INFO, "Registration successful! Please log in", extra_tags="register_successful")
-                print "added user"
-      
-    if error :
-        messages.add_message(request, messages.INFO, request.POST['name'], extra_tags = 'name')
-        messages.add_message(request, messages.INFO, request.POST['username'], extra_tags = 'username') 
-    
-    return redirect(reverse('wishList:home'))
-        
+        print request.POST
+
+        returnVal = Users.objects.register(request.POST)
+        if returnVal['user'] :
+            request.session['logged_in_user'] = returnVal['user'].id
+            print "logged in user: ",request.session['logged_in_user']
+            return redirect(reverse('wishList:dashboard'))
+        else :
+            for error in returnVal['errors'] :
+                print error
+                messages.error(request,error['message'],extra_tags=error['extra_tags'])
+            return redirect(reverse("wishList:home"))
+
 def login (request):
     if request.method == "POST":
-        password = request.POST['login_password']
-        username = request.POST['login_username']
-        print "username {} password {}".format(username, password)
-       
-        try :
-            user = Users.objects.get(username = username)
-            print user
-            print user.password
-            if bcrypt.checkpw(password.encode(), user.password.encode()):
-                print "password match"
-                request.session['logged_in_user'] = user.id
-                print "logged in user: ",request.session['logged_in_user']
-                return redirect(reverse('wishList:dashboard'))
-            else: 
-                print "password mismatch"
-                messages.add_message(request, messages.ERROR, 'Incorrect User Id or Password. Please try again')
-                return redirect(reverse('wishList:home'))
-        except Users.DoesNotExist:
-            print "user not found"
-            messages.add_message(request, messages.ERROR, 'Incorrect User Id or Password. Please try again', extra_tags='login')
+        returnVal = Users.objects.login(request.POST)
+        if returnVal['user']:
+            request.session['logged_in_user'] = returnVal['user'].id
+            print "logged in user: ",request.session['logged_in_user']
+            return redirect(reverse('wishList:dashboard'))
+        else:
+            for error in returnVal['errors'] :
+                print error
+                messages.error(request,error['message'],extra_tags=error['extra_tags'])
             return redirect(reverse('wishList:home'))
 
 def logout (request) :
@@ -99,52 +64,59 @@ def logout (request) :
     return redirect(reverse('wishList:home'))
 
 def dashboard(request) :
-    user = Users.objects.get(pk=int(request.session['logged_in_user']))
+    user = __getLoggedUser(request)
     user_name = user.name
     print "user name: ", user_name
     log = 'Logout'
-    wishList = WishList.objects.filter(owner=user)
-    print len(wishList)
+    # Get my wish list items:
+    myWishList = user.items_set.all()
+    print "myWishList: ", myWishList
+
+    # Other wish list :
     items = Items.objects.all()
-    print items
     others = []
-    if (len(wishList) == 0) :
-        others = items
-        print "others = items"
-    else :
-        for item in items :
-            print item
-            for wishItem in wishList:
-                print wishItem.item
-                if item != wishItem.item: 
-                    others.append(item)
+    for item in items :
+        print "item ",item
+        # If the item does not have this user as a wisher then add that item
+        # to the other list 
+        wishers = item.wisher.filter(id = user.id)
+        print "wishers {} len {}".format(wishers,len(wishers))
+        print wishers
+        if (len(wishers) == 0):
+            others.append(item)
     
     print others
-    # books = Books.objects.all()
-    # print "Books: ", books
+
     context = {
         'user_name': user_name,
         'log':log,
-        'wishList':wishList,
-        'others':others
+        'wishList':myWishList,
+        'others': others
     }
     return render(request, 'wishListApp/dashboard.html', context)
 
 def createWishList(request) :
     context = {}
+    
     return render(request, 'wishListApp/createWishList.html', context)
 
-def addWishList(request) :
-    context = {}
+def addNewItem(request) :
+    # Create new item and add logged user's wish list 
     if request.method == "POST":
         print request.POST
-        user = Users.objects.get(pk=int(request.session['logged_in_user']))
-        item = Items.objects.create(name=request.POST['name'],creator=user, date_created = timezone.now())
-        WishList.objects.create(item=item, owner=user)
-    
-    return redirect(reverse('wishList:dashboard'))
+        if (__validateCreateRequestForm(request)) :
+            user = __getLoggedUser(request)
+            item = Items.objects.create(name=request.POST['name'],creator=user, date_created = timezone.now())
+            item.wisher.add(user)
+            item.save()
+            print "new item created"
+            return redirect(reverse('wishList:dashboard'))
+        else :
+            print "errors"
+            return redirect(reverse('wishList:createWishList'))
 
-def removeItem(request, itemId) :
+def deleteItem(request, itemId) :
+    # Delete item.  
     print "in remove, id ",itemId
     item = Items.objects.get(pk=itemId)
     print item
@@ -152,23 +124,65 @@ def removeItem(request, itemId) :
     return redirect(reverse('wishList:dashboard'))
 
 def addToWishList(request, itemId) :
+    # Add item selected from the 'other' table to the logged user's wish list 
     print itemId
-    user = Users.objects.get(pk=int(request.session['logged_in_user']))
-    wishList = WishList.objects.get(owner=user)
+    user = __getLoggedUser(request)
     item = Items.objects.get(pk=itemId)
-    WishList.objects.create(item=item, owner=user)
+    item.wisher.add(user)
     return redirect(reverse('wishList:dashboard'))
 
-def removeFromList(request, itemId) :
+def removeFromWishList(request, itemId) :
+    # Remove item from logged user's wish list 
     item = Items.objects.get(pk=itemId)
-    user = Users.objects.get(pk=int(request.session['logged_in_user']))
-    wishList = WishList.objects.get(item=item, owner=user)
-    wishList.delete()
+    user = __getLoggedUser(request)   
+    item.wisher.remove(user)
+
     return redirect(reverse('wishList:dashboard'))
 
 def itemDetails(request, itemId) :
     item = Items.objects.get(pk=itemId)
-    wishLists = WishList.objects.filter(item=item)
+    wishers = item.wisher.all()
+    print wishers
+    return render(request, 'wishListApp/itemDetails.html', {'wishers':wishers, 'item': item.name})
 
-    return render(request, 'wishListApp/itemDetails.html', {'wishLists':wishLists, 'item': item.name})
+def __getLoggedUser(request): 
+    user = None
+    id = request.session['logged_in_user']
+    try:
+        user = Users.objects.get(pk=id)
+        return user
+    except Users.DoesNotExist:
+        messages.add_message(request, messages.ERROR, 'You are not logged in. Please log in to continue')
+        print "Not logged in"
+        return redirect(reverse('wishList:home'))
+    return user
+            
+
+def __validateLoginForm(request) :
+    if request.POST['login_username'] == "" :
+        messages.add_message(request, messages.ERROR, 'username is required', extra_tags="login")
+    if request.POST['login_password'] == "" :
+         messages.add_message(request, messages.ERROR, 'password is required', extra_tags="login")
+    if (len(messages.get_messages(request)) > 0):
+        print "__validateRegisterForm returning false"
+        return False
+    else :
+        print "__validateRegisterForm returning true"
+        return True
+
+def __validateCreateRequestForm(request) :
+    if request.POST['name'] == "" :
+        messages.add_message(request, messages.ERROR, 'Name is required', extra_tags="createwish")
+    elif len(request.POST['name']) < 3 :
+        messages.add_message(request, messages.ERROR, 'Name has to be minimum 3 characters long', extra_tags="createwish")
+    if (len(messages.get_messages(request)) > 0):
+        print "__validateRegisterForm returning false"
+        return False
+    else :
+        print "__validateRegisterForm returning true"
+        return True
+
+     
+
+
 
